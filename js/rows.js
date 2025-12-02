@@ -143,7 +143,9 @@ let setupRows = function (game) {
 
 
     function resetInput(){
-        // YOUR CODE HERE
+        const input = document.getElementById("myInput");
+        const currentAttempt = game.guesses.length + 1;
+        input.placeholder = `Guess ${currentAttempt} of 8`;
     }
 
     let getPlayer = function (playerId) {
@@ -151,16 +153,20 @@ let setupRows = function (game) {
     }
 
     function gameEnded(lastGuess){
-        // De momento siempre devuelve false, para más adelante
-        return false;
+        //El juego acaba si se pasa una de estas cosas, se acierta o se alcanzan 8 intentos
+        return lastGuess === game.solution.id || game.guesses.length >= 8;
     }
 
     function success() {
-        // Se implementará en milestone 4
+        unblur('success').then(() => {
+            // showStats se llamará en milestone 5
+        });
     }
 
     function gameOver() {
-        // Se implementará en milestone 4
+        unblur('failure').then(() => {
+            // showStats se llamará en milestone 5
+        });
     }
 
     resetInput();
@@ -182,9 +188,7 @@ let setupRows = function (game) {
 
             if (playerId == game.solution.id) {
                 success();
-            }
-
-            if (game.guesses.length == 8) {
+            } else if (game.guesses.length >= 8) {
                 gameOver();
             }
 
