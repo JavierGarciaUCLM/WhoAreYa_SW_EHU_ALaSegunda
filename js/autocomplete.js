@@ -29,7 +29,7 @@ function autocomplete(inp, game) {
         /*for each item in the array...*/
         for (i = 0; i < players.length; i++) {
             /*check if the item starts with the same letters as the text field value:*/
-            if ( /* YOUR CODE HERE */ ) {
+            if ( players[i].name.toLowerCase().startsWith(val.toLowerCase()) ) {
 
                 b = document.createElement("DIV");
                 b.classList.add('flex', 'items-start', 'gap-x-3', 'leading-tight', 'uppercase', 'text-sm');
@@ -37,7 +37,7 @@ function autocomplete(inp, game) {
 
                 /*make the matching letters bold:*/
                 b.innerHTML += `<div class='self-center'>
-                                    <span class='font-bold'> YOUR CODE HERE : koinziditzen duten hizkiak beltzez</span><span class>YOUR CODE HERE: gainontzeko izena</span>
+                                    <span class='font-bold'> ${players[i].name.substr(0,val.length)}</span><span class>${players[i].name.substr(val.length)}</span>
                                     <input type='hidden' name='name' value='${players[i].name}'>
                                     <input type='hidden' name='id' value='${players[i].id}'>
                                 </div>`;
@@ -51,7 +51,18 @@ function autocomplete(inp, game) {
                     (or any other open lists of autocompleted values:*/
                     closeAllLists();
 
-                    /* YOUR CODE HERE */
+                    const idStr = this.getElementsByTagName("input")[1].value;
+                    const id = parseInt(idStr, 10);
+                    if (!Number.isNaN(id)) {
+                        try {
+                            addRow(id);
+                        } catch (err) {
+                            // si addRow espera otra cosa, puedes buscar el jugador y pasarlo:
+                            // const player = players.find(p => p.id === id);
+                            // addRow(player);
+                            console.warn("addRow falló con id, revisa setupRows:", err);
+                        }
+                    }
                 });
                 a.appendChild(b);
             }

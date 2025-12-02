@@ -1,6 +1,7 @@
 import { folder, leftArrow } from "./fragments.js";
 import { fetchJSON } from "./loaders.js";
 import { setupRows } from "./rows.js";
+import { autocomplete } from "./autocomplete.js";
 
 function differenceInDays(base1) {
   const start = new Date(
@@ -62,6 +63,7 @@ Promise.all([fetchJSON("fullplayers25"), fetchJSON("solution25")]).then(
     let addRow = setupRows(game);  // pasamos el estado del juego
 
     const input = document.getElementById("myInput");
+    autocomplete(input, game);
     input.addEventListener("keyup", (e) => {
       if (e.key === "Enter") {
         const playerId = parseInt(input.value, 10);
