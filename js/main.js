@@ -1,5 +1,6 @@
 import { folder, leftArrow } from "./fragments.js";
 import { fetchJSON } from "./loaders.js";
+import { setupRows } from "./rows.js";
 
 function differenceInDays(base1) {
   const start = new Date(
@@ -43,11 +44,14 @@ function getSolution(players, solutionArray, difference_In_Days) {
 Promise.all([fetchJSON("fullplayers25"), fetchJSON("solution25")]).then(
   (values) => {
 
-    let solution;
+    let solutionRaw;
     
-    [game.players, solution] = values;
+    [game.players, solutionRaw] = values;
 
-    game.solution = getSolution(game.players, solution, difference_In_Days);
+    // solution25.json es un array de strings, se pasa a números para poder usarlo como array de números
+    const solutionArray = solutionRaw.map(id => Number(id));
+
+    game.solution = getSolution(game.players, solutionArray, difference_In_Days);
     
     console.log(game.solution);
 
@@ -55,14 +59,18 @@ Promise.all([fetchJSON("fullplayers25"), fetchJSON("solution25")]).then(
       document.getElementById("mistery").src = `https://playfootball.games/media/players/${game.solution.id % 32}/${game.solution.id}.png`;
     }
 
+    let addRow = setupRows(game);  // pasamos el estado del juego
 
-      // YOUR CODE HERE
-    let addRow = setupRows( /* THIS NEEDS A PARAMETER */ );
-    // get myInput object...
-      // when the user types a number an press the Enter key:
-        addRow( /* the ID of the player, where is it? */);
-    //  
-
+    const input = document.getElementById("myInput");
+    input.addEventListener("keyup", (e) => {
+      if (e.key === "Enter") {
+        const playerId = parseInt(input.value, 10);
+        if (!isNaN(playerId)) {
+          addRow(playerId);   // añade una nueva fila
+          input.value = "";   // limpia el input
+        }
+      }
+    });
 
   }
 );

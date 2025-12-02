@@ -1,8 +1,4 @@
-// YOUR CODE HERE :  
-// .... stringToHTML ....
-// .... setupRows .....
-// .... initState ....
-//
+import { stringToHTML } from "./fragments.js";
 
 // From: https://stackoverflow.com/a/7254108/243532
 function pad(a, b){
@@ -13,24 +9,54 @@ function pad(a, b){
 const delay = 350;
 const attribs = ['nationality', 'leagueId', 'teamId', 'position', 'birthdate']
 
+function initState(storageKey, solutionId) {
+  const state = { key: storageKey, solutionId, guesses: [] };
+  function updateState(guessId) {
+    state.guesses.push(guessId);
+  }
+  return [state, updateState];
+}
 
 let setupRows = function (game) {
-
 
     let [state, updateState] = initState('WAYgameState', game.solution.id)
 
 
     function leagueToFlag(leagueId) {
-        // YOUR CODE HERE
+        const leagueMap = {
+            564: "es1", // España
+            8:   "en1", // Inglaterra
+            82:  "de1", // Alemania
+            384: "it1", // Italia
+            301: "fr1"  // Francia
+        };
+        return leagueMap[leagueId] ?? "unknown";
     }
 
 
     function getAge(dateString) {
-        // YOUR CODE HERE
+        const birth = new Date(dateString);
+        const today = new Date();
+        let age = today.getFullYear() - birth.getFullYear();
+        const hasBirthdayPassed =
+            today.getMonth() > birth.getMonth() ||
+            (today.getMonth() === birth.getMonth() &&
+             today.getDate() >= birth.getDate());
+        if (!hasBirthdayPassed) age--;
+        return age;
     }
     
     let check = function (theKey, theValue) {
-            // YOUR CODE HERE
+        const target = game.solution; // jugador misterioso
+        if (theKey === "birthdate") {
+            const guessedAge = getAge(theValue);
+            const targetAge  = getAge(target.birthdate);
+            if (guessedAge === targetAge) return "correct";
+            // si el jugador elegido es más joven que el misterioso, busco más edad
+            return guessedAge < targetAge ? "higher" : "lower";
+        }
+        // resto de atributos por comparación directa
+        return target[theKey] === theValue ? "correct" : "incorrect";
     }
 
         function unblur(outcome) {
@@ -73,12 +99,21 @@ let setupRows = function (game) {
 
 
     function setContent(guess) {
+        const ageCheck = check('birthdate', guess.birthdate);
+        let ageDisplay = `${getAge(guess.birthdate)}`;
+        //flecha si la edad no coincide
+        if (ageCheck === 'higher') {
+            ageDisplay += ' ↑'; //edad + más
+        } else if (ageCheck === 'lower') {
+            ageDisplay += ' ↓';//edad + menos
+        }
+        
         return [
             `<img src="https://playfootball.games/media/nations/${guess.nationality.toLowerCase()}.svg" alt="" style="width: 60%;">`,
             `<img src="https://playfootball.games/media/competitions/${leagueToFlag(guess.leagueId)}.png" alt="" style="width: 60%;">`,
             `<img src="https://cdn.sportmonks.com/images/soccer/teams/${guess.teamId % 32}/${guess.teamId}.png" alt="" style="width: 60%;">`,
             `${guess.position}`,
-            `${getAge(guess.birthdate)}` /* YOUR CODE HERE */
+            ageDisplay
         ]
     }
 
@@ -86,8 +121,9 @@ let setupRows = function (game) {
         let fragments = '', s = '';
         for (let j = 0; j < content.length; j++) {
             s = "".concat(((j + 1) * delay).toString(), "ms")
+            const checkResult = check(attribs[j], guess[attribs[j]]);
             fragments += `<div class="w-1/5 shrink-0 flex justify-center ">
-                            <div class="mx-1 overflow-hidden w-full max-w-2 shadowed font-bold text-xl flex aspect-square rounded-full justify-center items-center bg-slate-400 text-white ${check(attribs[j], guess[attribs[j]]) == 'correct' ? 'bg-green-500' : ''} opacity-0 fadeInDown" style="max-width: 60px; animation-delay: ${s};">
+                            <div class="mx-1 overflow-hidden w-full max-w-2 shadowed font-bold text-xl flex aspect-square rounded-full justify-center items-center bg-slate-400 text-white ${checkResult == 'correct' ? 'bg-green-500' : ''} opacity-0 fadeInDown" style="max-width: 60px; animation-delay: ${s};">
                                 ${content[j]}
                             </div>
                          </div>`
@@ -111,14 +147,21 @@ let setupRows = function (game) {
     }
 
     let getPlayer = function (playerId) {
-            // YOUR CODE HERE   
+        return game.players.find(p => p.id === playerId);
     }
-
 
     function gameEnded(lastGuess){
-        // YOUR CODE HERE
+        // De momento siempre devuelve false, para más adelante
+        return false;
     }
 
+    function success() {
+        // Se implementará en milestone 4
+    }
+
+    function gameOver() {
+        // Se implementará en milestone 4
+    }
 
     resetInput();
 
@@ -146,7 +189,7 @@ let setupRows = function (game) {
             }
 
 
-                  let interval = /* YOUR CODE HERE */ ;
+                  let interval = 0; //pa el futuro
 
 
          }
@@ -155,3 +198,5 @@ let setupRows = function (game) {
         showContent(content, guess)
     }
 }
+
+export { setupRows };
