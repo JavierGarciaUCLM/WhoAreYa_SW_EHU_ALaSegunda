@@ -6,3 +6,75 @@ export function stringToHTML(str) {
   template.innerHTML = str.trim();
   return template.content.firstElementChild;
 }
+
+export const statsDialog = (stats) => {
+    // 1. LIMPIEZA DE DATOS: Si algo viene vacío, ponemos 0 para que no salga "undefined"
+    const s = stats || {};
+    const total = s.totalGames || 0;
+    const rate = s.successRate || 0;
+    const current = s.currentStreak || 0;
+    const best = s.bestStreak || 0;
+    const dist = s.winDistribution || [0, 0, 0, 0, 0, 0, 0, 0];
+
+    const maxVal = Math.max(...dist, 1);
+    
+    // Generar barras
+    let bars = dist.map((count, i) => {
+        let width = (count / maxVal) * 100;
+        let color = count > 0 ? 'bg-green-500' : 'bg-gray-600'; 
+        // Forzar un mínimo de ancho si hay valor para que se vea
+        if(count > 0 && width < 10) width = 10;
+
+        return `<div class="flex items-center mb-1 gap-2" style="margin-bottom: 4px;">
+            <span class="w-4 text-xs font-bold text-white">${i + 1}</span>
+            <div class="flex-1 h-5 bg-gray-700 rounded overflow-hidden">
+                <div class="${color} h-full text-xs text-right pr-1 text-white font-bold flex items-center justify-end" style="width: ${width}%; background-color: ${count > 0 ? '#22c55e' : '#4b5563'};">
+                    ${count > 0 ? count : ''}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+
+    // HTML del Modal de stats
+    return `
+    <div id="statsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 backdrop-blur-sm p-4" style="background-color: rgba(0,0,0,0.8);">
+        
+        <div class="bg-gray-900 border border-gray-600 p-6 rounded-xl max-w-sm w-full text-white shadow-2xl relative" style="background-color: #111827; border: 1px solid #4b5563;">
+            
+            <button id="closedialog" class="absolute top-3 right-3 text-gray-400 hover:text-white p-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <h2 class="text-2xl font-bold text-center mb-6 uppercase tracking-wider border-b border-gray-700 pb-2">Estadísticas</h2>
+            
+            <div class="grid grid-cols-4 gap-2 text-center mb-6" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 1.5rem;">
+                <div class="flex flex-col items-center">
+                    <span class="text-2xl font-bold">${total}</span>
+                    <span class="text-[10px] uppercase text-gray-400">Jugados</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-2xl font-bold">${rate}%</span>
+                    <span class="text-[10px] uppercase text-gray-400">% Gana</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-2xl font-bold">${current}</span>
+                    <span class="text-[10px] uppercase text-gray-400">Racha</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-2xl font-bold">${best}</span>
+                    <span class="text-[10px] uppercase text-gray-400">Max</span>
+                </div>
+            </div>
+
+            <h3 class="font-bold text-sm mb-3 uppercase text-gray-300">Distribución</h3>
+            <div class="mb-4 space-y-2">
+                ${bars}
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-gray-700 text-center">
+                 <p class="text-xs text-gray-500 uppercase">Próximo Jugador</p>
+                 <p class="text-lg font-mono font-bold text-gray-300" id="nextPlayerTimer">--:--:--</p>
+            </div>
+        </div>
+    </div>`;
+};
