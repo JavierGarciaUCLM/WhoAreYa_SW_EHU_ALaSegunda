@@ -1,12 +1,13 @@
-import {setupRows} from "./rows.js";
+import { setupRows } from "./rows.js";
 
-export {autocomplete}
+export { autocomplete }
 
 function autocomplete(inp, game) {
 
     let addRow = setupRows(game);
 
     let players = game.players;
+    let matches
 
     /*the autocomplete function takes two arguments,
     the text field element and an array of possible autocompleted values:*/
@@ -29,18 +30,30 @@ function autocomplete(inp, game) {
         /*for each item in the array...*/
         for (i = 0; i < players.length; i++) {
             /*check if the item starts with the same letters as the text field value:*/
-            if ( players[i].name.toLowerCase().startsWith(val.toLowerCase()) ) {
+            let matchFound = false
+            if (window.WAY && typeof window.WAY.match === 'function') {
+                matches = window.WAY.match(players[i].name, val, { insideWords: true, findAllOccurrences: true })
+                matchFound = (matches && matches.length > 0)
+            }
+            if (matchFound) {
+                var newName = window.WAY.parse(players[i].name, matches)
 
                 b = document.createElement("DIV");
                 b.classList.add('flex', 'items-start', 'gap-x-3', 'leading-tight', 'uppercase', 'text-sm');
                 b.innerHTML = `<img src="https://cdn.sportmonks.com/images/soccer/teams/${players[i].teamId % 32}/${players[i].teamId}.png"  width="28" height="28">`;
 
+                const formattedName = newName.map(part =>
+                    `<span class="${part.highlight ? "font-bold" : ""}">${part.text}</span>`
+                )
+                    .join("")
                 /*make the matching letters bold:*/
                 b.innerHTML += `<div class='self-center'>
-                                    <span class='font-bold'> ${players[i].name.substr(0,val.length)}</span><span class>${players[i].name.substr(val.length)}</span>
+                                    ${formattedName}
                                     <input type='hidden' name='name' value='${players[i].name}'>
                                     <input type='hidden' name='id' value='${players[i].id}'>
                                 </div>`;
+
+
 
                 /*execute a function when someone clicks on the item value (DIV element):*/
                 b.addEventListener("click", function (e) {
