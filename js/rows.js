@@ -1,9 +1,8 @@
 import { stringToHTML, statsDialog } from "./fragments.js"; 
 import { updateStats, getStats } from "./stats.js";
 
-// --- CAMBIO CLAVE: Definimos showStats AQUÍ FUERA para que siempre exista ---
+// --- FUNCIÓN GLOBAL showStats (Igual que antes) ---
 function showStats(timeout = 0) {
-    //LÓGICA DE TOGGLE
     const existing = document.getElementById('statsModal');
     if (existing) {
         existing.remove(); 
@@ -12,35 +11,30 @@ function showStats(timeout = 0) {
 
     return new Promise((resolve, reject) => {
         setTimeout(() => {
-            // Obtener datos
             const data = getStats('gameStats');
-            
-            // Crear HTML
             const dialogHTML = statsDialog(data);
             const dialogNode = stringToHTML(dialogHTML);
-            
-            // Mostrar en pantalla
             document.body.appendChild(dialogNode);
 
-            // ACTIVAR EL BOTÓN DE LA CRUZ (X)
-            const closeBtn = document.getElementById("closedialog");
-            if (closeBtn) {
-                closeBtn.onclick = function() {
-                    const modal = document.getElementById('statsModal');
-                    if (modal) modal.remove();
-                };
-            }
+            setTimeout(() => {
+                const closeBtn = document.getElementById("closedialog");
+                if (closeBtn) {
+                    closeBtn.onclick = function() {
+                        const modal = document.getElementById('statsModal');
+                        if (modal) modal.remove();
+                    };
+                }
+            }, 50);
 
             resolve();
         }, timeout);
     });
 }
 
-// Hacemos la función global INMEDIATAMENTE para que el botón funcione
 window.showStats = () => showStats(0);
 
+// -------------------------------------------------------------------
 
-// From: https://stackoverflow.com/a/7254108/243532
 function pad(a, b){
     return(1e15 + a + '').slice(-b);
 }
@@ -48,11 +42,27 @@ function pad(a, b){
 const delay = 350;
 const attribs = ['nationality', 'leagueId', 'teamId', 'position', 'birthdate']
 
+// --- MILESTONE 7: initState lee del LocalStorage ---
 function initState(storageKey, solutionId) {
-    const state = { key: storageKey, solutionId, guesses: [] };
+    // Creamos una clave única usando el ID de la solución (ej: WAYgameState-329)
+    // Así, mañana (solución 330) la partida empezará de cero automáticamente.
+    const fullKey = storageKey + '-' + solutionId; 
+    
+    const storedState = localStorage.getItem(fullKey);
+
+    let state;
+    if (storedState) {
+        state = JSON.parse(storedState); // Recuperar partida
+    } else {
+        state = { key: fullKey, solutionId, guesses: [] }; // Nueva partida
+    }
+
     function updateState(guessId) {
         state.guesses.push(guessId);
+        // Guardar cada vez que adivinamos
+        localStorage.setItem(fullKey, JSON.stringify(state));
     }
+    
     return [state, updateState];
 }
 
@@ -115,9 +125,13 @@ let setupRows = function (game) {
                     text = "The player was " + game.solution.name;
                 }
                 
-                const picbox = document.getElementById("picbox");
-                if(picbox) {
-                    picbox.innerHTML += `<div class="animate-pulse fixed z-20 top-14 left-1/2 transform -translate-x-1/2 max-w-sm shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden ${color} text-white"><div class="p-4"><p class="text-sm text-center font-medium">${text}</p></div></div>`;
+                // Evitar duplicar el mensaje si recargamos la página ya terminada
+                const existingMsg = document.querySelector('.fixed.z-20');
+                if (!existingMsg) {
+                    const picbox = document.getElementById("picbox");
+                    if(picbox) {
+                        picbox.innerHTML += `<div class="animate-pulse fixed z-20 top-14 left-1/2 transform -translate-x-1/2 max-w-sm shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden ${color} text-white"><div class="p-4"><p class="text-sm text-center font-medium">${text}</p></div></div>`;
+                    }
                 }
                 resolve();
             }, 2000);
@@ -127,8 +141,16 @@ let setupRows = function (game) {
     function resetInput(){
         const input = document.getElementById("myInput");
         if(input) {
-            const currentAttempt = game.guesses.length + 1;
-            input.placeholder = `Guess ${currentAttempt} of 8`;
+            // MILESTONE 7: Si ya acabamos (está en guesses o son 8), bloqueamos
+            const isGameOver = game.guesses.includes(game.solution.id) || game.guesses.length >= 8;
+            
+            if (isGameOver) {
+                input.placeholder = "Game Over";
+                input.disabled = true;
+            } else {
+                const currentAttempt = game.guesses.length + 1;
+                input.placeholder = `Guess ${currentAttempt} of 8`;
+            }
         }
     }
 
@@ -143,21 +165,42 @@ let setupRows = function (game) {
     function success() {
         updateStats(game.guesses.length);
         unblur('success').then(() => {
-            // Llamamos a la función global
             showStats(1000);
         });
     }
 
     function gameOver() {
-        updateStats(9); // 9 indica fallo
+        updateStats(9); 
         unblur('failure').then(() => {
-            // Llamamos a la función global
             showStats(1000);
         });
+    }
+    
+    // --- MILESTONE 7: RESTAURAR PARTIDA AL CARGAR ---
+    if (state.guesses.length > 0) {
+        // 1. Sincronizar array del juego con lo guardado
+        game.guesses = [...state.guesses];
+
+        // 2. Repintar las filas guardadas
+        state.guesses.forEach(playerId => {
+            let guess = getPlayer(playerId);
+            if (guess) {
+                let content = setContent(guess);
+                showContent(content, guess);
+            }
+        });
+
+        // 3. Chequear si el juego ya había terminado para mostrar el final
+        const lastId = state.guesses[state.guesses.length - 1];
+        if (gameEnded(lastId)) {
+            const outcome = (lastId === game.solution.id) ? 'success' : 'failure';
+            unblur(outcome); // Muestra foto sin blur
+        }
     }
 
     resetInput();
 
+    // Función principal que se llama al adivinar
     return function (playerId) {
         let guess = getPlayer(playerId);
         console.log(guess);
@@ -165,7 +208,7 @@ let setupRows = function (game) {
         let content = setContent(guess);
 
         game.guesses.push(playerId);
-        updateState(playerId);
+        updateState(playerId); // Guarda en localStorage
 
         resetInput();
 
